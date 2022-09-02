@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"bytes"
 	"encoding/json"
@@ -110,6 +111,8 @@ func RegisterModel() {
 		new(models.TeamMember),
 		new(models.TeamRelationship),
 		new(models.Itemsets),
+    new(models.Comment),
+    new(models.WorkWeixinAccount),
 	)
 	gob.Register(models.Blog{})
 	gob.Register(models.Document{})
@@ -261,6 +264,12 @@ func RegisterFunction() {
 	err = web.AddFuncMap("urlfor", conf.URLFor)
 	if err != nil {
 		logs.Error("注册函数 urlfor 出错 ->", err)
+		os.Exit(-1)
+	}
+	//读取配置值(未作任何转换)
+	err = web.AddFuncMap("conf", conf.CONF)
+	if err != nil {
+		logs.Error("注册函数 conf 出错 ->", err)
 		os.Exit(-1)
 	}
 	err = web.AddFuncMap("date_format", func(t time.Time, format string) string {

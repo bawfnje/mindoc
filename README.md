@@ -1,7 +1,7 @@
 # MinDoc 简介
 
 [![Build Status](https://travis-ci.com/mindoc-org/mindoc.svg?branch=master)](https://travis-ci.com/mindoc-org/mindoc)
-[![Build status](https://ci.appveyor.com/api/projects/status/o3lcfmf5iy2cp9m6?svg=true)](https://ci.appveyor.com/project/gsw945/mindoc)
+[![Build status](https://ci.appveyor.com/api/projects/status/7680ia6mu29m12wx?svg=true)](https://ci.appveyor.com/project/mindoc-org/mindoc)
 
 MinDoc 是一款针对IT团队开发的简单好用的文档管理系统。
 
@@ -11,9 +11,9 @@ MinDoc 的前身是 [SmartWiki](https://github.com/lifei6671/SmartWiki) 文档�
 
 可以用来储存日常接口文档，数据库字典，手册说明等文档。内置项目管理，用户管理，权限管理等功能，能够满足大部分中小团队的文档管理需求。
 
-##### 演示站点:
-- [https://www.iminho.me/wiki/](https://www.iminho.me/wiki/)
-- https://doc.gsw945.com/
+##### 演示站点&文档:
+- https://www.iminho.me/wiki/docs/mindoc/
+- https://doc.gsw945.com/docs/mindoc-docs/
 
 ---
 
@@ -41,19 +41,23 @@ MinDoc 的前身是 [SmartWiki](https://github.com/lifei6671/SmartWiki) 文档�
 
 对于没有Golang使用经验的用户，可以从 [https://github.com/mindoc-org/mindoc/releases](https://github.com/mindoc-org/mindoc/releases) 这里下载编译完的程序。
 
-如果有Golang开发经验，建议通过编译安装，要求golang版本不小于1.13(需支持`CGO`和`go mod`)。
+如果有Golang开发经验，建议通过编译安装，要求golang版本不小于1.15.1(需支持`CGO`、`go mod`和`import _ "time/tzdata"`)(推荐Go版本为1.18.1)。
+> 注意: CentOS7上GLibC版本低，常规编译版本不能使用。需要自行源码编译,或使用使用musl编译版本。
 
+## 常规编译
 ```bash
 # 克隆源码
 git clone https://github.com/mindoc-org/mindoc.git
 # go包安装
-go mod tidy
+go mod tidy -v
 # 编译(sqlite需要CGO支持)
-go build -ldflags "-w"
+go build -ldflags "-w" -o mindoc main.go
 # 数据库初始化(此步骤执行之前，需配置`conf/app.conf`)
 ./mindoc install
 # 执行
 ./mindoc
+# 开发阶段运行
+bee run
 ```
 
 MinDoc 如果使用MySQL储存数据，则编码必须是`utf8mb4_general_ci`。请在安装前，把数据库配置填充到项目目录下的 `conf/app.conf` 中。
@@ -64,9 +68,33 @@ MinDoc 如果使用MySQL储存数据，则编码必须是`utf8mb4_general_ci`。
 
 **默认程序会自动初始化一个超级管理员用户：admin 密码：123456 。请登录后重新设置密码。**
 
+## Linux系统中不依赖gLibC的编译方式
 
+### 安装 musl-gcc
 ```bash
+wget -c http://www.musl-libc.org/releases/musl-1.2.2.tar.gz
+tar -xvf musl-1.2.2.tar.gz
+cd musl-1.2.2
+./configure
+make
+sudo make install
+```
+### 使用 musl-gcc 编译 mindoc
+```bash
+go mod tidy -v
+export GOARCH=amd64
+export GOOS=linux
+# 设置使用musl-gcc
+export CC=/usr/local/musl/bin/musl-gcc
+# 设置版本
+export TRAVIS_TAG=temp-musl-v`date +%y%m%d`
+go build -v -o mindoc_linux_musl_amd64 -ldflags="-linkmode external -extldflags '-static' -w -X 'github.com/mindoc-org/mindoc/conf.VERSION=$TRAVIS_TAG' -X 'github.com/mindoc-org/mindoc/conf.BUILD_TIME=`date`' -X 'github.com/mindoc-org/mindoc/conf.GO_VERSION=`go version`'"
+# 验证
+./mindoc_linux_musl_amd64 version
+```
 
+
+```ini
 #邮件配置-示例
 #是否启用邮件
 enable_mail=true
@@ -100,23 +128,27 @@ HTTP_PORT                   程序监听的端口号
 MINDOC_ENABLE_EXPORT        开启导出(默认为false)
 ```
 
-### 举个栗子-当前(公开)镜像(信息页面: https://cr.console.aliyun.com/images/cn-hangzhou/mindoc-org/mindoc/detail)
+#### 举个栗子-当前(公开)镜像(信息页面: https://cr.console.aliyun.com/images/cn-hangzhou/mindoc-org/mindoc/detail , 需要登录阿里云账号才可访问列表)
 ##### Windows
 ```bash
 set MINDOC=//d/mindoc
-docker run -it --name=mindoc --restart=always -v "%MINDOC%":"/mindoc-sync-host" -p 8181:8181 -e MINDOC_ENABLE_EXPORT=true -d registry.cn-hangzhou.aliyuncs.com/mindoc-org/mindoc:v2.1-beta.4
+docker run -it --name=mindoc --restart=always -v "%MINDOC%/conf":"/mindoc/conf" -p 8181:8181 -e MINDOC_ENABLE_EXPORT=true -d registry.cn-hangzhou.aliyuncs.com/mindoc-org/mindoc:v2.1
 ```
 
 ##### Linux、Mac
 ```bash
 export MINDOC=/home/ubuntu/mindoc-docker
-docker run -it --name=mindoc --restart=always -v "${MINDOC}":"/mindoc-sync-host" -p 8181:8181 -e MINDOC_ENABLE_EXPORT=true -d registry.cn-hangzhou.aliyuncs.com/mindoc-org/mindoc:v2.1-beta.4
+docker run -it --name=mindoc --restart=always -v "${MINDOC}/conf":"/mindoc/conf" -p 8181:8181 -e MINDOC_ENABLE_EXPORT=true -d registry.cn-hangzhou.aliyuncs.com/mindoc-org/mindoc:v2.1
 ```
 
 ##### 举个栗子-更多环境变量示例(镜像已过期，仅供参考，请以当前镜像为准)
 ```bash
 docker run -p 8181:8181 --name mindoc -e DB_ADAPTER=mysql -e MYSQL_PORT_3306_TCP_ADDR=10.xxx.xxx.xxx -e MYSQL_PORT_3306_TCP_PORT=3306 -e MYSQL_INSTANCE_NAME=mindoc -e MYSQL_USERNAME=root -e MYSQL_PASSWORD=123456 -e httpport=8181 -d daocloud.io/lifei6671/mindoc:latest
 ```
+
+#### dockerfile内容参考
+- [无需代理直接加速各种 GitHub 资源拉取 | 国内镜像赋能 | 助力开发](https://blog.frytea.com/archives/504/)
+- [阿里云 - Ubuntu 镜像](https://developer.aliyun.com/mirror/ubuntu)
 
 ### docker-compose 一键安装
 
@@ -205,6 +237,10 @@ docker run -p 8181:8181 --name mindoc -e DB_ADAPTER=mysql -e MYSQL_PORT_3306_TCP
 - ~~to-markdown~~[Turndown](https://github.com/domchristie/turndown) HTML转Markdown库
 - ~~quill 富文本编辑器~~
 - [wangEditor](https://github.com/wangeditor-team/wangEditor) 富文本编辑器
+  - 参考
+    - [wangEditor v4.7 富文本编辑器教程](https://www.bookstack.cn/books/wangeditor-4.7-zh)
+    - [扩展菜单注册太过繁琐 #2493](https://github.com/wangeditor-team/wangEditor/issues/2493)
+  - 工具： `https://babeljs.io/repl` + `@babel/plugin-transform-classes`
 - [Vue.js](https://github.com/vuejs/vue) 框架
 
 

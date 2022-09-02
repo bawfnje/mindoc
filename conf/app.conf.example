@@ -8,6 +8,7 @@ sessionon = true
 sessionname = mindoc_id
 copyrequestbody = true
 enablexsrf = "${MINDOC_ENABLE_XSRF||false}"
+enable_iframe = "${MINDOC_ENABLE_IFRAME||false}"
 
 #系统完整URL(http://doc.iminho.me),如果该项不设置，会从请求头中获取地址。
 baseurl="${MINDOC_BASE_URL}"
@@ -124,7 +125,9 @@ ldap_host=ad.example.com
 #ldap端口
 ldap_port=3268
 #ldap内哪个属性作为用户名
-ldap_attribute=sAMAccountName
+ldap_account=sAMAccountName
+#ldap内哪个属性作为邮箱
+ldap_mail=mail
 #搜索范围
 ldap_base=DC=example,DC=com
 #第一次绑定ldap用户dn
@@ -230,7 +233,19 @@ dingtalk_qr_key="${MINDOC_DINGTALK_QRKEY}"
 # 钉钉扫码登录Secret
 dingtalk_qr_secret="${MINDOC_DINGTALK_QRSECRET}"
 
+########企业微信登录配置##############
+
+# 企业ID
+workweixin_corpid="${MINDOC_WORKWEIXIN_CORPID}"
+
+# 应用ID
+workweixin_agentid="${MINDOC_WORKWEIXIN_AGENTID}"
+
+# 应用密钥
+workweixin_secret="${MINDOC_WORKWEIXIN_SECRET}"
+
+# 通讯录密钥
+workweixin_contact_secret="${MINDOC_WORKWEIXIN_CONTACT_SECRET}"
+
 # i18n config
 default_lang="zh-cn"
-
-

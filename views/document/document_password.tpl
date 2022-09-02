@@ -92,11 +92,15 @@
         border: 1px solid #357ebd;
     }
     </style>
+    <script type="text/javascript">
+        window.IS_ENABLE_IFRAME = '{{conf "enable_iframe" }}' === 'true';
+        window.BASE_URL = '{{urlfor "HomeController.Index" }}';
+    </script>
 </head>
 <body>
 <div class="auth_form">
 <div class="shell">
-        <form action="{{urlfor "DocumentController.Index" ":key" .Identify}}" method="post" id="auth_form">
+        <form action="{{urlfor "DocumentController.CheckPassword" ":key" .Identify}}" method="post" id="auth_form">
             <div class="tit">{{i18n .Lang "doc.input_pwd"}}</div>
             <div style="margin-top: 10px;">
                 <input type="password" name="bPassword" placeholder="{{i18n .Lang "doc.read_pwd"}}" class="inp"/>
@@ -109,6 +113,8 @@
         </form>
 </div>
 </div>
+<script src="{{cdnjs "/static/js/custom-elements-builtin-0.6.5.min.js"}}" type="text/javascript"></script>
+<script src="{{cdnjs "/static/js/x-frame-bypass-1.0.2.js"}}" type="text/javascript"></script>
 <script type="text/javascript">
 $("#auth_form").ajaxForm({
     beforeSerialize: function () {

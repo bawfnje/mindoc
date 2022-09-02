@@ -89,8 +89,28 @@
                                         <input type="radio"{{if eq .Model.Editor "markdown"}} checked{{end}} name="editor" value="markdown"> Markdown {{i18n $.Lang "blog.text_editor"}}
                                     </label>
                                     <label class="radio-inline">
-                                        <input type="radio"{{if eq .Model.Editor "html"}} checked{{end}} name="editor" value="html"> Html {{i18n $.Lang "blog.text_editor"}}
+                                        <input type="radio"{{if eq .Model.Editor "new_html"}} checked{{end}} name="editor" value="new_html"> Html {{i18n $.Lang "blog.text_editor"}}(Quill)
                                     </label>
+                                    <label class="radio-inline">
+                                        <input type="radio"{{if eq .Model.Editor "html"}} checked{{end}} name="editor" value="html"> Html {{i18n $.Lang "blog.text_editor"}}(wangEditor)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>评论</label>
+                                <div class="radio">
+                                    <label class="radio-inline">
+                                        <input type="radio"{{if eq .Model.CommentStatus "closed"}} checked{{end}} name="comment_status" value="closed"> 关闭评论
+                                    </label>
+                                    <label class="radio-inline">
+                                        <input type="radio"{{if eq .Model.CommentStatus "open"}} checked{{end}} name="comment_status" value="open"> 开启评论
+                                    </label>
+                                    <!--label class="radio-inline">
+                                        <input type="radio"{{if eq .Model.CommentStatus "registered_only"}} checked{{end}} name="comment_status" value="registered_only"> 注册用户可见
+                                    </label>
+                                    <label class="radio-inline">
+                                        <input type="radio"{{if eq .Model.CommentStatus "group_only"}} checked{{end}} name="comment_status" value="group_only"> 成员可见
+                                    </label-->
                                 </div>
                             </div>
                 {{if eq .Model.PrivatelyOwned 1}}

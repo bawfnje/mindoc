@@ -541,7 +541,7 @@ WHERE book.privately_owned = 0 or rel.role_id >=0 or team.role_id >=0`
 		if err != nil {
 			return
 		}
-		sql2 := `SELECT book.*,rel1.*,member.account AS create_name,member.real_name FROM md_books AS book
+		sql2 := `SELECT book.*,rel1.*,mdmb.account AS create_name,mdmb.real_name FROM md_books AS book
   LEFT JOIN md_relationship AS rel ON rel.book_id = book.book_id AND rel.member_id = ?
   left join (select book_id,min(role_id) AS role_id
              from (select book_id,role_id
@@ -549,7 +549,7 @@ WHERE book.privately_owned = 0 or rel.role_id >=0 or team.role_id >=0`
                      left join md_team_member as mtm on mtm.team_id=mtr.team_id and mtm.member_id=? order by role_id desc )
 as t group by book_id) as team on team.book_id=book.book_id
   LEFT JOIN md_relationship AS rel1 ON rel1.book_id = book.book_id AND rel1.role_id = 0
-  LEFT JOIN md_members AS member ON rel1.member_id = member.member_id
+  LEFT JOIN md_members AS mdmb ON rel1.member_id = mdmb.member_id
 WHERE book.privately_owned = 0 or rel.role_id >=0 or team.role_id >=0 ORDER BY order_index desc,book.book_id DESC LIMIT ?,?`
 
 		_, err = o.Raw(sql2, memberId, memberId, offset, pageSize).QueryRows(&books)
@@ -563,9 +563,9 @@ WHERE book.privately_owned = 0 or rel.role_id >=0 or team.role_id >=0 ORDER BY o
 		}
 		totalCount = int(count)
 
-		sql := `SELECT book.*,rel.*,member.account AS create_name,member.real_name FROM md_books AS book
+		sql := `SELECT book.*,rel.*,mdmb.account AS create_name,mdmb.real_name FROM md_books AS book
 			LEFT JOIN md_relationship AS rel ON rel.book_id = book.book_id AND rel.role_id = 0
-			LEFT JOIN md_members AS member ON rel.member_id = member.member_id
+			LEFT JOIN md_members AS mdmb ON rel.member_id = mdmb.member_id
 			WHERE book.privately_owned = 0 ORDER BY order_index DESC ,book.book_id DESC LIMIT ?,?`
 
 		_, err = o.Raw(sql, offset, pageSize).QueryRows(&books)
@@ -595,14 +595,14 @@ WHERE (relationship_id > 0 OR book.privately_owned = 0 or team.team_member_id > 
 		if err != nil {
 			return
 		}
-		sql2 := `SELECT book.*,rel1.*,member.account AS create_name FROM md_books AS book
+		sql2 := `SELECT book.*,rel1.*,mdmb.account AS create_name FROM md_books AS book
 			LEFT JOIN md_relationship AS rel ON rel.book_id = book.book_id AND rel.member_id = ?
 			left join (select * from (select book_id,team_member_id,role_id
                    	from md_team_relationship as mtr
 					left join md_team_member as mtm on mtm.team_id=mtr.team_id and mtm.member_id=? order by role_id desc )as t group by t.role_id,t.team_member_id,t.book_id) as team 
 					on team.book_id = book.book_id
 			LEFT JOIN md_relationship AS rel1 ON rel1.book_id = book.book_id AND rel1.role_id = 0
-			LEFT JOIN md_members AS member ON rel1.member_id = member.member_id
+			LEFT JOIN md_members AS mdmb ON rel1.member_id = mdmb.member_id
 			WHERE (rel.relationship_id > 0 OR book.privately_owned = 0 or team.team_member_id > 0) 
 			AND book.label LIKE ? ORDER BY order_index DESC ,book.book_id DESC LIMIT ?,?`
 
@@ -619,9 +619,9 @@ WHERE (relationship_id > 0 OR book.privately_owned = 0 or team.team_member_id > 
 		}
 		totalCount = int(count)
 
-		sql := `SELECT book.*,rel.*,member.account AS create_name FROM md_books AS book
+		sql := `SELECT book.*,rel.*,mdmb.account AS create_name FROM md_books AS book
 			LEFT JOIN md_relationship AS rel ON rel.book_id = book.book_id AND rel.role_id = 0
-			LEFT JOIN md_members AS member ON rel.member_id = member.member_id
+			LEFT JOIN md_members AS mdmb ON rel.member_id = mdmb.member_id
 			WHERE book.privately_owned = 0 AND book.label LIKE ? ORDER BY order_index DESC ,book.book_id DESC LIMIT ?,?`
 
 		_, err = o.Raw(sql, keyword, offset, pageSize).QueryRows(&books)
@@ -680,7 +680,7 @@ func (book *Book) ResetDocumentNumber(bookId int) {
 	}
 }
 
-//导入项目
+// 导入zip项目
 func (book *Book) ImportBook(zipPath string, lang string) error {
 	if !filetil.FileExists(zipPath) {
 		return errors.New("文件不存在 => " + zipPath)
@@ -699,6 +699,8 @@ func (book *Book) ImportBook(zipPath string, lang string) error {
 	}
 	//如果加压缩失败
 	if err := ziptil.Unzip(zipPath, tempPath); err != nil {
+		logs.Error("CAll ziptil.Unzip error, zipPath: %s, tempPath: %s, err: %v",
+			zipPath, tempPath, err)
 		return err
 	}
 	//当导入结束后，删除临时文件
@@ -969,6 +971,78 @@ func (book *Book) ImportBook(zipPath string, lang string) error {
 		return nil
 	})
 
+	if err != nil {
+		logs.Error("导入项目异常 => ", err)
+		book.Description = "【项目导入存在错误：" + err.Error() + "】"
+	}
+	logs.Info("项目导入完毕 => ", book.BookName)
+	book.ReleaseContent(book.BookId, lang)
+	return err
+}
+
+// 导入docx项目
+func (book *Book) ImportWordBook(docxPath string, lang string) (err error) {
+	if !filetil.FileExists(docxPath) {
+		return errors.New("文件不存在")
+	}
+	docxPath = strings.Replace(docxPath, "\\", "/", -1)
+
+	o := orm.NewOrm()
+
+	o.Insert(book)
+	relationship := NewRelationship()
+	relationship.BookId = book.BookId
+	relationship.RoleId = 0
+	relationship.MemberId = book.MemberId
+	err = relationship.Insert()
+	if err != nil {
+		logs.Error("插入项目与用户关联 -> ", err)
+		return err
+	}
+
+	doc := NewDocument()
+	doc.BookId = book.BookId
+	doc.MemberId = book.MemberId
+	docIdentify := strings.Replace(strings.TrimPrefix(docxPath, os.TempDir()+"/"), "/", "-", -1)
+
+	if ok, err := regexp.MatchString(`[a-z]+[a-zA-Z0-9_.\-]*$`, docIdentify); !ok || err != nil {
+		docIdentify = "import-" + docIdentify
+	}
+
+	doc.Identify = docIdentify
+
+	if doc.Markdown, err = utils.Docx2md(docxPath, false); err != nil {
+		logs.Error("导入doc项目转换异常 => ", err)
+		return err
+	}
+
+	// fmt.Println("===doc.Markdown===")
+	// fmt.Println(doc.Markdown)
+	// fmt.Println("==================")
+
+	doc.Content = string(blackfriday.Run([]byte(doc.Markdown)))
+
+	// fmt.Println("===doc.Content===")
+	// fmt.Println(doc.Content)
+	// fmt.Println("==================")
+
+	doc.Version = time.Now().Unix()
+
+	var docName string
+	for _, line := range strings.Split(doc.Markdown, "\n") {
+		if strings.HasPrefix(line, "#") {
+			docName = strings.TrimLeft(line, "#")
+			break
+		}
+	}
+
+	doc.DocumentName = strings.TrimSpace(docName)
+
+	doc.DocumentId = book.MemberId
+
+	if err := doc.InsertOrUpdate("document_name", "book_id", "markdown", "content"); err != nil {
+		logs.Error(doc.DocumentId, err)
+	}
 	if err != nil {
 		logs.Error("导入项目异常 => ", err)
 		book.Description = "【项目导入存在错误：" + err.Error() + "】"

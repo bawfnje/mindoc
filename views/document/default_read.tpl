@@ -21,7 +21,6 @@
     <link href="{{cdncss "/static/nprogress/nprogress.css"}}" rel="stylesheet">
     <link href="{{cdncss "/static/css/kancloud.css" "version"}}" rel="stylesheet">
     <link href="{{cdncss "/static/css/jstree.css"}}" rel="stylesheet">
-    <link href="{{cdncss "/static/editor.md/lib/mermaid/mermaid.css" "version"}}" rel="stylesheet">
     <link href="{{cdncss "/static/editor.md/lib/sequence/sequence-diagram-min.css" "version"}}" rel="stylesheet">
     <link href="{{cdncss "/static/editor.md/css/editormd.preview.css" "version"}}" rel="stylesheet">
     <link href="{{cdncss "/static/css/markdown.preview.css" "version"}}" rel="stylesheet">
@@ -29,12 +28,22 @@
     <link href="{{cdncss "/static/katex/katex.min.css"}}" rel="stylesheet">
     <link href="{{cdncss "/static/css/print.css" "version"}}" media="print" rel="stylesheet">
 
+    <script type="text/javascript">
+        window.IS_ENABLE_IFRAME = '{{conf "enable_iframe" }}' === 'true';
+        window.BASE_URL = '{{urlfor "HomeController.Index" }}';
+        window.IS_DOCUMENT_INDEX = '{{if .IS_DOCUMENT_INDEX}}true{{end}}' === 'true';
+        window.IS_DISPLAY_COMMENT = '{{if .Model.IsDisplayComment}}true{{end}}' === 'true';
+    </script>
     <script type="text/javascript">window.book={"identify":"{{.Model.Identify}}"};</script>
     <style>
         .btn-mobile {
             position: absolute;
             right: 10px;
             top: 10px;
+        }
+
+        .not-show-comment {
+            display: none;
         }
 
         @media screen and (min-width: 840px) {
@@ -171,6 +180,45 @@
                     <div class="article-body  {{if eq .Model.Editor "markdown"}}markdown-body editormd-preview-container{{else}}editor-content{{end}}"  id="page-content">
                         {{.Content}}
                     </div>
+
+                    {{if .Model.IsDisplayComment}}
+                    <div id="articleComment" class="m-comment{{if .IS_DOCUMENT_INDEX}} not-show-comment{{end}}">
+                        <!-- 评论列表 -->
+                        <div class="comment-list" id="commentList">
+                            {{range $i, $c := .Page.List}}
+                            <div class="comment-item" data-id="{{$c.CommentId}}">
+                                <p class="info"><a class="name">{{$c.Author}}</a><span class="date">{{date $c.CommentDate "Y-m-d H:i:s"}}</span></p>
+                                <div class="content">{{$c.Content}}</div>
+                                <p class="util">
+                                    <span class="operate {{if eq $c.ShowDel 1}}toggle{{end}}">
+                                        <span class="number">{{$c.Index}}#</span>
+                                        {{if eq $c.ShowDel 1}}
+                                        <i class="delete e-delete glyphicon glyphicon-remove" style="color:red" onclick="onDelComment({{$c.CommentId}})"></i>
+                                        {{end}}
+                                    </span>
+                                </p>
+                            </div>
+                            {{end}}
+                        </div>
+
+                        <!-- 翻页 -->
+                        <ul id="page"></ul>
+
+                        <!-- 发表评论 -->
+                        <div class="comment-post">
+                            <form class="form" id="commentForm" action="{{urlfor "CommentController.Create"}}" method="post">
+                                <label class="enter w-textarea textarea-full">
+                                    <textarea class="textarea-input form-control" name="content" id="commentContent" placeholder="文明上网，理性发言" style="height: 72px;"></textarea>
+                                    <input type="hidden" name="doc_id" id="doc_id" value="{{.DocumentId}}">
+                                </label>
+                                <div class="pull-right">
+                                    <button class="btn btn-success btn-sm" type="submit" id="btnSubmitComment" data-loading-text="提交中...">提交评论</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {{end}}
+
                     <div class="jump-top">
                         <a href="javascript:;" class="view-backtop"><i class="fa fa-arrow-up" aria-hidden="true"></i></a>
                     </div>
@@ -243,6 +291,7 @@
 
 <script src="{{cdnjs "/static/jquery/1.12.4/jquery.min.js"}}"></script>
 <script src="{{cdnjs "/static/bootstrap/js/bootstrap.min.js"}}"></script>
+<script src="{{cdnjs "/static/bootstrap-paginator/bootstrap-paginator.min.js"}}"></script>
 <script src="{{cdnjs "/static/js/jquery.form.js"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/layer/layer.js"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/jstree/3.3.4/jstree.min.js"}}" type="text/javascript"></script>
@@ -251,6 +300,8 @@
 <script src="{{cdnjs "/static/js/jquery.highlight.js"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/js/kancloud.js" "version"}}" type="text/javascript"></script>
 <script src="{{cdnjs "/static/js/splitbar.js" "version"}}" type="text/javascript"></script>
+<script src="{{cdnjs "/static/js/custom-elements-builtin-0.6.5.min.js"}}" type="text/javascript"></script>
+<script src="{{cdnjs "/static/js/x-frame-bypass-1.0.2.js"}}" type="text/javascript"></script>
 <script type="text/javascript">
 $(function () {
     $("#searchList").on("click","a",function () {
@@ -298,7 +349,11 @@ $(function () {
             $(this).find('i').attr("class","fa fa-angle-down")
             window.jsTree.jstree().open_all()
         }
-    })
+    });
+
+    if (!window.IS_DOCUMENT_INDEX && IS_DISPLAY_COMMENT) {
+        pageClicked(-1, parseInt($('#doc_id').val()));
+    }
 });
 </script>
 {{.Scripts}}

@@ -20,7 +20,7 @@ const CaptchaSessionName = "__captcha__"
 const RegexpEmail = "^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
 //允许用户名中出现点号
-const RegexpAccount = `^[a-zA-Z][a-zA-Z0-9\.-]{2,50}$`
+const RegexpAccount = `^[a-zA-Z0-9][a-zA-Z0-9\.-]{2,50}$`
 
 // PageSize 默认分页条数.
 const PageSize = 10
@@ -47,6 +47,8 @@ const (
 	BookEditor
 	//观察者
 	BookObserver
+	//未指定关系
+	BookRoleNoSpecific
 )
 
 //项目角色
@@ -152,6 +154,11 @@ func GetEnableExport() bool {
 	return web.AppConfig.DefaultBool("enable_export", true)
 }
 
+//是否启用iframe
+func GetEnableIframe() bool {
+	return web.AppConfig.DefaultBool("enable_iframe", false)
+}
+
 //同一项目导出线程的并发数
 func GetExportProcessNum() int {
 	exportProcessNum := web.AppConfig.DefaultInt("export_process_num", 1)
@@ -206,6 +213,15 @@ func IsAllowUploadFileExt(ext string) bool {
 		}
 	}
 	return false
+}
+
+//读取配置文件值
+func CONF(key string, value ...string) string {
+	defaultValue := ""
+	if len(value) > 0 {
+		defaultValue = value[0]
+	}
+	return web.AppConfig.DefaultString(key, defaultValue)
 }
 
 //重写生成URL的方法，加上完整的域名

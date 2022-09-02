@@ -3,7 +3,7 @@
 <html lang="zh-cn">
 <head>
     <meta charset="utf-8">
-    <link rel="shortcut icon" href="{{cdnimg "/favicon.ico"}}">
+    <link rel="shortcut icon" href="{{cdnimg "/static/favicon.ico"}}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="renderer" content="webkit" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -46,15 +46,15 @@
                 <td>{{$item.ModifyName}}</td>
                 <td>{{$item.Version}}</td>
                 <td>
-                    <button class="btn btn-danger btn-sm delete-btn" data-id="{{$item.HistoryId}}" data-loading-text="{{i18n .Lang "message.processing"}}">
-                        {{i18n .Lang "doc.delete"}}
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="{{$item.HistoryId}}" data-loading-text="{{i18n $.Lang "message.processing"}}">
+                        {{i18n $.Lang "doc.delete"}}
                     </button>
-                    <button class="btn btn-success btn-sm restore-btn" data-id="{{$item.HistoryId}}" data-loading-text="{{i18n .Lang "message.processing"}}">
-                        {{i18n .Lang "doc.recover"}}
+                    <button class="btn btn-success btn-sm restore-btn" data-id="{{$item.HistoryId}}" data-loading-text="{{i18n $.Lang "message.processing"}}">
+                        {{i18n $.Lang "doc.recover"}}
                     </button>
                     {{if eq $.Model.Editor "markdown"}}
                     <button class="btn btn-success btn-sm compare-btn" data-id="{{$item.HistoryId}}">
-                        {{i18n .Lang "doc.merge"}}
+                        {{i18n $.Lang "doc.merge"}}
                     </button>
                     {{end}}
                 </td>
